@@ -34,20 +34,8 @@ private:
 	std::vector<glm::vec3> normals;
 
 	//CONSTANTS
-	double mark_length = 0.02;
-	double suggestive_diff_thresh_min = 20.0;
-	double suggestive_diff_thresh_max = 600.0;
-	double suggestive_diff_thresh_incr = 20.0;
-	double suggestive_angle_thresh_min = 6.0;
-	double suggestive_angle_thresh_max = 20.0;
-	double suggestive_angle_thresh_incr = 2.0;
-	unsigned int contour_length_thresh_min = 1;
-	unsigned int contour_length_thresh_max = 5;
-	unsigned int contour_length_thresh_incr = 1;
-
-	double suggestive_diff_thresh = suggestive_diff_thresh_min;
-	double suggestive_angle_thresh = suggestive_angle_thresh_min;
-	unsigned int contour_length_thresh = contour_length_thresh_min;
+	double suggestive_diff_thresh = 20.0;
+	double suggestive_angle_thresh = 6.0;
 
 public:
 	/// <summary>

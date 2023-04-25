@@ -1,6 +1,8 @@
 #pragma once
 #include "FeatureSet.h"
+#include "subset_selector.h"
 #include <string>
+#include <limits.h>
 
 class Exporter
 {
@@ -31,8 +33,10 @@ public:
 	void clear_all();
 	void add_features(FeatureSet* features);
 	void export_to_csv(std::string path, FeatureSet* fs);
+	void export_to_csv(std::string path, FeatureSet* set, std::vector<std::vector<float>>& data);
 	void standardize();
 	void normalize();
+	std::vector<std::vector<float>> reduce_rows();
 
 private:
 	void perform_standardization(std::vector<float>& data);

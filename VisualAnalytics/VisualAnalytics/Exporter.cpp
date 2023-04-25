@@ -133,6 +133,60 @@ void Exporter::export_to_csv(std::string path, FeatureSet* set)
 	std::cout << "Exporting finished" << std::endl;
 }
 
+void Exporter::export_to_csv(std::string path, FeatureSet* set, std::vector<std::vector<float>>& data)
+{
+	std::cout << "Exporting of " << VisibleTrianglesFeatures.size() << " rows started..." << std::endl;
+	std::ofstream csv("C:\\Users\\Ondrej\\Desktop\\" + path);
+
+	//write header
+	std::string header = "";
+	for (auto& feature : set->viewDependentFeatures)
+	{
+		header += feature->name + ", ";
+	}
+
+	for (auto& feature : set->pixelDependentFeatures)
+	{
+		header += feature->name + ", ";
+	}
+
+	for (auto& feature : set->pixelDependentVec2Features)
+	{
+		header += feature->name + ", ";
+	}
+
+	for (auto& feature : set->pixelDependentVec3Features)
+	{
+		header += feature->name + ", ";
+	}
+
+	header += "\n";
+	csv << header;
+
+	//write features
+	for (int i = 0; i < data[0].size(); i++)
+	{
+		if (i % 100000 == 0)
+			std::cout << i << std::endl;
+
+		std::string line = "";
+
+		// iterate columns
+		for (int j = 0; j < data.size(); j++)
+		{
+			line += std::to_string(data[j][i]) + ", ";
+		}
+
+		line.pop_back();
+		line.pop_back();
+		line += "\n";
+		csv << line;
+	}
+
+	csv.close();
+	std::cout << "Exporting finished" << std::endl;
+}
+
 void Exporter::standardize()
 {
 	std::cout << "Data standardization started..." << std::endl;
@@ -147,7 +201,6 @@ void Exporter::standardize()
 	perform_standardization(DiscontinuityFeatures);
 	perform_standardization(ContourDistanceFeatures);
 	perform_standardization(PixelPositionFeatures);
-	perform_standardization(ViewDependentCurvatureFeatures);
 	perform_standardization(ViewDependentCurvatureFeatures);
 	perform_standardization(NormalFeatures);
 	perform_standardization(WorldPositionFeatures);
@@ -169,10 +222,79 @@ void Exporter::normalize()
 	perform_normalization(ContourDistanceFeatures);
 	perform_normalization(PixelPositionFeatures);
 	perform_normalization(ViewDependentCurvatureFeatures);
-	perform_normalization(ViewDependentCurvatureFeatures);
 	perform_normalization(NormalFeatures);
 	perform_normalization(WorldPositionFeatures);
 	std::cout << "Data normalization completed." << std::endl;
+}
+
+std::vector<std::vector<float>> Exporter::reduce_rows()
+{
+	std::cout << "Row reduction started..." << std::endl;
+
+	// divide non-float features to multiple float vectors
+	std::vector<float> pix_pos_x;
+	std::vector<float> pix_pos_y;
+	std::vector<float> curv_x;
+	std::vector<float> curv_y;
+	std::vector<float> curv_z;
+	std::vector<float> norm_x;
+	std::vector<float> norm_y;
+	std::vector<float> norm_z;
+	std::vector<float> world_pos_x;
+	std::vector<float> world_pos_y;
+	std::vector<float> world_pos_z;
+
+	for (int i = 0; i < VisibleTrianglesFeatures.size(); i++)
+	{
+		if (i % 100000 == 0)
+			std::cout << i << std::endl;
+
+		pix_pos_x.push_back(PixelPositionFeatures[i].x);
+		pix_pos_y.push_back(PixelPositionFeatures[i].y);
+
+		curv_x.push_back(ViewDependentCurvatureFeatures[i].x);
+		curv_y.push_back(ViewDependentCurvatureFeatures[i].y);
+		curv_z.push_back(ViewDependentCurvatureFeatures[i].z);
+
+		norm_x.push_back(NormalFeatures[i].x);
+		norm_y.push_back(NormalFeatures[i].y);
+		norm_z.push_back(NormalFeatures[i].z);
+
+		world_pos_x.push_back(WorldPositionFeatures[i].x);
+		world_pos_y.push_back(WorldPositionFeatures[i].y);
+		world_pos_z.push_back(WorldPositionFeatures[i].z);
+	}
+
+	std::vector<std::vector<float>> data {
+		VisibleTrianglesFeatures,
+		ProjectedAreaFeatures,
+		VisibleAreaRatioFeatures,
+		VisibilityRatioFeatures,
+		ViewpointEntropyFeatures,
+		DepthMaximizingFeatures,
+		SilhouetteCurvatureFeatures,
+		SilhouetteLengthFeatures,
+		ContourFeatures,
+		DiscontinuityFeatures,
+		ContourDistanceFeatures,
+		pix_pos_x,
+		pix_pos_y,
+		curv_x,
+		curv_y,
+		curv_z,
+		norm_x,
+		norm_y,
+		norm_z,
+		world_pos_x,
+		world_pos_y,
+		world_pos_z
+	};
+
+	auto data_out = subsetSelector::compute<float>(data, 5000, 10000, 1000);
+
+	std::cout << "Row reduction completed." << std::endl;
+
+	return data_out;
 }
 
 /// <summary>
@@ -302,8 +424,8 @@ void Exporter::perform_standardization(std::vector<glm::vec3>& values)
 
 void Exporter::perform_normalization(std::vector<float>& values)
 {
-	float _min = 0.0f;
-	float _max = 0.0f;
+	float _min = FLT_MAX;
+	float _max = FLT_MIN;
 	for (const auto& val : values)
 	{
 		_min = std::min(_min, val);
@@ -317,8 +439,8 @@ void Exporter::perform_normalization(std::vector<float>& values)
 
 void Exporter::perform_normalization(std::vector<glm::vec2>& values)
 {
-	glm::vec2 _min(0.0f);
-	glm::vec2 _max(0.0f);
+	glm::vec2 _min(FLT_MAX);
+	glm::vec2 _max(FLT_MIN);
 	
 	for (const auto& val : values)
 	{
@@ -335,17 +457,18 @@ void Exporter::perform_normalization(std::vector<glm::vec2>& values)
 
 void Exporter::perform_normalization(std::vector<glm::vec3>& values)
 {
-	glm::vec3 _min(0.0f);
-	glm::vec3 _max(0.0f);
+	glm::vec3 _min(FLT_MAX);
+	glm::vec3 _max(FLT_MIN);
 
 	for (const auto& val : values)
 	{
 		_min.x = std::min(_min.x, val.x);
 		_min.y = std::min(_min.y, val.y);
-		_min.y = std::min(_min.z, val.z);
+		_min.z = std::min(_min.z, val.z);
+		
 		_max.x = std::max(_max.x, val.x);
 		_max.y = std::max(_max.y, val.y);
-		_max.y = std::max(_max.z, val.z);
+		_max.z = std::max(_max.z, val.z);
 	}
 
 	for (int i = 0; i < values.size(); i++) {

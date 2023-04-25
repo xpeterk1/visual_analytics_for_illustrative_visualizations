@@ -19,10 +19,16 @@
 #include "Icosphere.h"
 #include "Exporter.h"
 
+#include "imgui.h"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void onKeyPress(GLFWwindow* window, int key, int scancode, int action, int mods);
+void DrawGUI();
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -70,6 +76,15 @@ int main()
     GLuint contours_program = create_program("shaders/contours.vert", "shaders/contours.frag");
     GLuint silhouette_program = create_program("shaders/silhouette.vert", "shaders/silhouette.frag");
     GLuint mesh_program = create_program("shaders/main.vert", "shaders/main.frag");
+
+
+    //Init ImGUI
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 460 core");
 
     glEnable(GL_DEPTH_TEST);
     //glEnable(GL_CULL_FACE);
@@ -188,6 +203,14 @@ int main()
             main_camera.set_camera(icosphere.vertices[sampling_index]);
         }
 
+        //New ImGUI Frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // Draw GUI
+        DrawGUI();
+
         view = glm::lookAt(main_camera.get_camera_eye(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         view_uniform.LoadData(view);
         mesh_view_uniform.LoadData(view);
@@ -238,12 +261,13 @@ int main()
             exporter.add_features(&fs);
             sampling_index++;
 
-            // All importer, standardize and write to csv
+            // All imported, normalize, perform subset selection and export to csv
             if (sampling_index + 1 == icosphere.vertices.size())
             {
                 is_sampling = false;
                 exporter.normalize();
-                exporter.export_to_csv("export.csv", &fs);
+                auto reduced_data = exporter.reduce_rows();
+                exporter.export_to_csv("export.csv", &fs, reduced_data);
                 std::cout << "Export completed " << std::endl;
             }
         }
@@ -281,4 +305,13 @@ void onKeyPress(GLFWwindow* window, int key, int scancode, int action, int mods)
         sampling_index = 0;
         is_sampling = true;
     }
+}
+
+void DrawGUI()
+{
+    ImGui::Begin("Main Menu");
+
+    ImGui::Text("Kernel Density Estimation");
+
+    ImGui::End();
 }

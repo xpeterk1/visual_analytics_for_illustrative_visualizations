@@ -262,5 +262,8 @@
     <ClInclude Include="Exporter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="subset_selector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
