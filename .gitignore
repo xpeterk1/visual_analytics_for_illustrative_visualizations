@@ -430,4 +430,4 @@ FodyWeavers.xsd
 
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
-VisualAnalytics/VisualAnalytics/models/dragon.ply
+!VisualAnalytics/VisualAnalytics/models/*
